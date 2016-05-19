@@ -267,7 +267,7 @@ def create_tx(current_owners, new_owners, inputs, operation, payload=None):
         elif len(new_owners) == 1:
             condition = cc.Ed25519Fulfillment(public_key=new_owners[0])
 
-        # to be added later (hashlock conditions)
+        # will be added later (e.g. custom conditions, hashlocks, ...)
         else:
             condition = None
 
@@ -278,7 +278,8 @@ def create_tx(current_owners, new_owners, inputs, operation, payload=None):
                     'details': json.loads(condition.serialize_json()),
                     'uri': condition.condition_uri
                 },
-                'cid': fulfillment['fid']
+                'cid': fulfillment['fid'],
+                'expires': None
             })
 
     tx = {

@@ -1878,3 +1878,60 @@ class TestCryptoconditions(object):
         for new_owner in new_owners:
             subcondition = condition.get_subcondition_from_vk(new_owner)[0]
             assert subcondition.public_key.to_ascii().decode() == new_owner
+
+
+class TestConditionExpiry(object):
+    def test_condition_contains_expires_field_create(self, b, user_vk):
+        tx = b.create_transaction(b.me, user_vk, None, 'CREATE')
+
+        assert 'expires' in tx['transaction']['conditions'][0]
+        assert tx['transaction']['conditions'][0]['expires'] is None
+
+    @pytest.mark.usefixtures('inputs')
+    def test_condition_contains_expires_field_transfer(self, b, user_vk):
+        input_tx = b.get_owned_ids(user_vk).pop()
+        assert b.validate_fulfillments(b.get_transaction(input_tx['txid'])) == True
+
+        tx = b.create_transaction(user_vk, b.me, input_tx, 'TRANSFER')
+        assert 'expires' in tx['transaction']['conditions'][0]
+        assert tx['transaction']['conditions'][0]['expires'] is None
+
+    def test_condition_set_expires_create(self, b, user_vk):
+        tx = b.create_transaction(b.me, user_vk, None, 'CREATE')
+
+        tx['transaction']['conditions'][0]['expires'] = 'time'
+
+        tx_signed = b.sign_transaction(tx, b.me_private)
+        assert b.is_valid_transaction(tx_signed) is False
+        with pytest.raises(exceptions.InvalidHash):
+            b.validate_transaction(tx_signed)
+
+        # tx has been changed, hence hash needs updating
+        tx['id'] = util.get_hash_data(tx)
+
+        tx_signed = b.sign_transaction(tx, b.me_private)
+        assert tx_signed == b.validate_transaction(tx_signed)
+        assert tx_signed == b.is_valid_transaction(tx_signed)
+        assert tx_signed['transaction']['conditions'][0]['expires'] == 'time'
+
+    @pytest.mark.usefixtures('inputs')
+    def test_condition_set_expires_transfer(self, b, user_vk, user_sk):
+        input_tx = b.get_owned_ids(user_vk).pop()
+        assert b.validate_fulfillments(b.get_transaction(input_tx['txid'])) == True
+
+        tx = b.create_transaction(user_vk, b.me, input_tx, 'TRANSFER')
+
+        tx['transaction']['conditions'][0]['expires'] = 'time'
+
+        tx_signed = b.sign_transaction(tx, user_sk)
+        assert b.is_valid_transaction(tx_signed) is False
+        with pytest.raises(exceptions.InvalidHash):
+            b.validate_transaction(tx_signed)
+
+        # tx has been changed, hence hash needs updating
+        tx['id'] = util.get_hash_data(tx)
+
+        tx_signed = b.sign_transaction(tx, user_sk)
+        assert tx_signed == b.validate_transaction(tx_signed)
+        assert tx_signed == b.is_valid_transaction(tx_signed)
+        assert tx_signed['transaction']['conditions'][0]['expires'] == 'time'
