@@ -91,7 +91,7 @@ class Block(object):
             validated_transactions = []
             for i in range(1000):
                 try:
-                    tx = self.q_tx_validated.get(timeout=5)
+                    tx = self.q_tx_validated.get(timeout=0.1)
                 except queue.Empty:
                     break
 
@@ -228,4 +228,3 @@ class Block(object):
         p_blocks.start()
         p_write.start()
         p_delete.start()
-
